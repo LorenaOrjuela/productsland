@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,56 +35,63 @@ fun ProductListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    when {
-        uiState.isLoading && uiState.products.isEmpty() -> {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+    if (uiState.isLoading && uiState.products.isEmpty()) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
+        return
+    }
 
-        uiState.errorMessage != null && uiState.products.isEmpty() -> {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = uiState.errorMessage.orEmpty())
-                Button(
-                    onClick = { viewModel.refresh() },
-                    modifier = Modifier.padding(top = 16.dp)
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.refresh() },
+        modifier = modifier.fillMaxSize()
+    ) {
+        when {
+            uiState.errorMessage != null && uiState.products.isEmpty() -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Reintentar")
+                    Text(text = uiState.errorMessage.orEmpty())
+                    Button(
+                        onClick = { viewModel.refresh() },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text("Reintentar")
+                    }
                 }
             }
-        }
 
-        uiState.products.isEmpty() -> {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Inventory2,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp)
-                )
-                Text(
-                    text = "No hay productos disponibles",
-                    modifier = Modifier.padding(top = 16.dp)
-                )
+            uiState.products.isEmpty() -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Inventory2,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Text(
+                        text = "No hay productos disponibles",
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
             }
-        }
 
-        else -> {
-            LazyColumn(modifier = modifier.fillMaxSize()) {
-                items(uiState.products, key = { it.id }) { product ->
-                    ProductRow(product = product)
-                    HorizontalDivider()
+            else -> {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(uiState.products, key = { it.id }) { product ->
+                        ProductRow(product = product)
+                        HorizontalDivider()
+                    }
                 }
             }
         }
